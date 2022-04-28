@@ -51,9 +51,9 @@ TArray<int32> SquareTrianglesIds(int32 topLeft, int32 topRight, int32 bottomLeft
     return {
         topLeft,
         topRight,
+        bottomRight,
+        bottomRight,
         bottomLeft,
-        bottomLeft,
-        topRight,
-        bottomRight
+        topLeft
     };
 }
