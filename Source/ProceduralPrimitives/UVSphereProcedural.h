@@ -20,6 +20,11 @@ private:
 
     void _buildMesh();
 
+    TArray<FVector> _makeSphereAxisPoints(float heightStep);
+    void _allocateBuffers(int32 nVertices);
+    void _makeSphereNormals();
+    void _emptyBuffers();
+
 public:	
 	AUVSphereProcedural();
 	virtual void Tick(float DeltaTime) override;

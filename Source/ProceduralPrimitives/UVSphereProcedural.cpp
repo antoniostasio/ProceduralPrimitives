@@ -44,43 +44,78 @@ void AUVSphereProcedural::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AUVSphereProcedural::_buildMesh()
+void AUVSphereProcedural::_allocateBuffers(int32 nVertices)
+{
+    _vertices.Reserve(nVertices);
+    _triangles.Reserve(nVertices * 6);
+    _normals.Reserve(nVertices);
+    _uv.Reserve(nVertices);
+}
+
+void AUVSphereProcedural::_emptyBuffers()
 {
     _uv.Empty();
     _normals.Empty();
     _vertices.Empty();
     _triangles.Empty();
+}
 
+void AUVSphereProcedural::_makeSphereNormals()
+{
+    for (const auto& vertex : _vertices)
+    {
+        auto normal = vertex - FVector::ZeroVector;
+        normal.Normalize();
+        _normals.Add(normal);
+    }
+}
+
+TArray<FVector> AUVSphereProcedural::_makeSphereAxisPoints(float angleStep)
+{
     TArray<FVector> centers;
-    TArray<int32> ids;
-
-    int32 pointsPerCircle = _parallels;
-    float stripHeight = (_radius * 2) / _meridians;
     centers.Reserve(_meridians);
 
-    int32 nVertices = _meridians * pointsPerCircle;
-
-    ids.Reserve(nVertices);
-    _vertices.Reserve(nVertices);
-    _triangles.Reserve(nVertices * 6);
-
-    for (int32 id = 0; id < nVertices; id++)
-        ids.Add(id);
-
-    _vertices.Reserve(nVertices);
-
-    for (float currentHeight = 0.0f; currentHeight < _radius * 2; currentHeight += stripHeight)
+    for (float currentAngle = -PI; currentAngle < PI; currentAngle += angleStep)
     {
-        centers.Add(FVector(0.0f, 0.0f, currentHeight - _radius));
+        float unitHeight = FMath::Cos(currentAngle);
+        centers.Add(FVector(0.0f, 0.0f, (unitHeight * _radius)));
     }
 
-    for (const auto& center : centers)
+    centers.Add(FVector(0.0f, 0.0f, -_radius));
+
+    return std::move(centers);
+}
+
+TArray<FVector2D> _makeSphereUVs()
+{
+    TArray<FVector2D> uvs;
+    return std::move(uvs);
+}
+
+void AUVSphereProcedural::_buildMesh()
+{
+    int32 pointsPerCircle = _parallels;
+    int32 nVertices = _meridians * pointsPerCircle;
+
+    float meridianAngleStep = PI / _meridians;
+
+    _emptyBuffers();
+    _allocateBuffers(nVertices);
+
+    TArray<int32> ids;
+    ids.Reserve(nVertices);
+    for (int32 id = 0; id < nVertices; id++) ids.Add(id);
+
+    for (const auto& center : _makeSphereAxisPoints(meridianAngleStep))
     {
         float localRadius = FMath::Sqrt((_radius * _radius) - (FMath::Abs(center.Z) * FMath::Abs(center.Z)));
+        UE_LOG(LogTemp, Warning, TEXT("radius: %f with center: %f"), localRadius, center.Z);
         _vertices.Append(CircularNGonPoints(pointsPerCircle, localRadius, center));
     }
 
-    for (int32 circleStartingId = nVertices - pointsPerCircle; circleStartingId > pointsPerCircle; circleStartingId -= pointsPerCircle)
+    for (int32 circleStartingId = nVertices - pointsPerCircle;
+            circleStartingId - pointsPerCircle >= 0;
+            circleStartingId -= pointsPerCircle)
     {
         int32 bottomCircleStartingId = circleStartingId - pointsPerCircle;
         auto top = TArrayView<int32>(ids).Slice(circleStartingId, pointsPerCircle);
@@ -88,5 +123,8 @@ void AUVSphereProcedural::_buildMesh()
         _triangles.Append(StripFromNGonCouple(top, bottom));
     }
 
-	_proceduralMesh->CreateMeshSection(0, _vertices, _triangles, _normals, _uv, {}, {}, false);
+    _makeSphereNormals();
+
+    _proceduralMesh->CreateMeshSection(0, _vertices, _triangles, _normals, _uv, {}, {}, false);
 }
+
