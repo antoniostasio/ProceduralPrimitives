@@ -1,9 +1,9 @@
 #include "MeshGenerationMisc.h"
 
-TArray<FVector> CircularNGonPoints(int32 nPoints, float radius, const FVector& center, float theta, bool includeCenter)
+TArray<FVector> CircularNGonPoints(int32 nPoints, float radius, const FVector& center, float theta)
 {
     TArray<FVector> points;
-    points.AddUninitialized(nPoints);
+    points.AddUninitialized(nPoints + 1);
 
     float dt = (PI * 2) / nPoints;
 
@@ -32,11 +32,11 @@ TArray<int32> StripFromNGonCouple(const TArrayView<int32>& topNGonIds, const TAr
     auto it1 = topNGonIds.begin();
     auto it2 = bottomNGonIds.begin();
 
-    for (; it1 != topNGonIds.end();) {
+    for (; it1 < topNGonIds.end() - 1;) {
         int32 topLeft = *it1;
-        int32 topRight = *( (it1 + 1) < topNGonIds.end() ? it1 + 1 : topNGonIds.begin() );
+        int32 topRight = *(it1 + 1);
         int32 bottomLeft = *it2;
-        int32 bottomRight = *( (it2 + 1) < bottomNGonIds.end() ? it2 + 1 : bottomNGonIds.begin() );
+        int32 bottomRight = *(it2 + 1);
 
         ids.Append(SquareTrianglesIds(topLeft, topRight, bottomLeft, bottomRight));
 
