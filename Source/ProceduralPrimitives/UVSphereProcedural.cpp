@@ -3,6 +3,8 @@
 
 #include "DrawDebugHelpers.h"
 
+#include "Util.h"
+
 AUVSphereProcedural::AUVSphereProcedural()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -21,6 +23,7 @@ void AUVSphereProcedural::PostEditChangeProperty(FPropertyChangedEvent& e)
 
 	if (anyPropChanged)
 	{
+        _pointsPerCircle = _meridians + 1;
 		_buildMesh();
 	}
 
@@ -78,7 +81,6 @@ TArray<FVector> AUVSphereProcedural::_makeSphereAxisPoints(float angleStep)
 {
     TArray<FVector> centers;
     centers.Reserve(_parallels);
-    int32 parallels = _parallels;
 
     for (int32 i = 0; i < _parallels; ++i)
     {
@@ -87,33 +89,31 @@ TArray<FVector> AUVSphereProcedural::_makeSphereAxisPoints(float angleStep)
         centers.Add(FVector(0.0f, 0.0f, - (unitHeight * _radius)));
     }
 
-    return std::move(centers);
+    return centers;
 }
 
 TArray<FVector2D> AUVSphereProcedural::_makeSphereUVs()
 {
+    int32 size = _parallels * _pointsPerCircle;
     TArray<FVector2D> uvs;
-    uvs.Reserve(_parallels * _meridians);
+    uvs.SetNum(size);
 
-    float xStep = 1.0f / (_parallels - 1);
-    float yStep = 1.0f / (_meridians - 1);
-
-    for (int32 mi = 0; mi < _meridians; mi++)
+    float xStep = 1.0 / _meridians;
+    float yStep = 1.0 / _parallels;
+    for (int32 cy = 0; cy < _parallels; cy++)
     {
-        float y = mi * yStep;
-        for (int32 pi = 0; pi < _parallels; pi++)
+        for (int32 cx = 0; cx < _pointsPerCircle; cx++)
         {
-            float x = pi * xStep;
-            uvs.Add(FVector2D(x, y));
+            uvs[--size] = FVector2D(xStep * cx, yStep * cy);
         }
     }
 
-    return std::move(uvs);
+    return uvs;
 }
 
 void AUVSphereProcedural::_buildMesh()
 {
-    int32 nVertices = _meridians * _parallels;
+    int32 nVertices = _pointsPerCircle * _parallels;
     float parallelsAngleStep = PI / (_parallels - 1);
 
     _emptyBuffers();
@@ -128,15 +128,15 @@ void AUVSphereProcedural::_buildMesh()
         _vertices.Append(CircularNGonPoints(_meridians, localRadius, center));
     }
 
-    for (int32 id = 0; id < _vertices.Num(); id++) ids.Add(id);
+    for (int32 id = 0; id < _vertices.Num(); ++id) ids.Add(id);
 
-    for (int32 circleStartingId = _vertices.Num() - _meridians;
-            circleStartingId - _meridians >= 0;
-            circleStartingId -= _meridians)
+    for (int32 circleStartingId = _vertices.Num() - _pointsPerCircle;
+            circleStartingId - _pointsPerCircle >= 0;
+            circleStartingId -= _pointsPerCircle)
     {
-        int32 bottomCircleStartingId = circleStartingId - _meridians;
-        auto top = TArrayView<int32>(ids).Slice(circleStartingId, _meridians);
-        auto bottom = TArrayView<int32>(ids).Slice(bottomCircleStartingId, _meridians);
+        int32 bottomCircleStartingId = circleStartingId - _pointsPerCircle;
+        auto top = TArrayView<int32>(ids).Slice(circleStartingId, _pointsPerCircle);
+        auto bottom = TArrayView<int32>(ids).Slice(bottomCircleStartingId, _pointsPerCircle);
 
         _triangles.Append(StripFromNGonCouple(top, bottom));
     }

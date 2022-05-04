@@ -18,6 +18,8 @@ private:
 	TArray<FVector> _normals;
 	TArray<FVector2D> _uv;
 
+   int32 _pointsPerCircle = 0;
+
     void _buildMesh();
 
     TArray<FVector2D> _makeSphereUVs();
@@ -37,13 +39,13 @@ public:
 	UMaterialInterface* _material;
 
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "1", ClampMax = "1000", UIMin = "1", UIMax = "1000"))
-	float _radius = 200;
+	float _radius = 90;
 
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "3", ClampMax = "100", UIMin = "3", UIMax = "100"))
-	int32 _meridians = 30;
+	int32 _meridians = 40;
 
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "3", ClampMax = "100", UIMin = "3", UIMax = "100"))
-	int32 _parallels = 30;
+	int32 _parallels = 40;
 
 protected:
 	virtual void BeginPlay() override;
