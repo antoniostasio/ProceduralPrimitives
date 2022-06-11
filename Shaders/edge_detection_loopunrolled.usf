@@ -1,0 +1,50 @@
+static const int CUSTOM_DEPTH_TEXTURE_ID = 13;
+float2 texelSize = View.ViewSizeAndInvSize.zw;
+float2 uv = GetDefaultSceneTextureUV(Parameters, CUSTOM_DEPTH_TEXTURE_ID);
+float3 hPixelSum = float3(0, 0, 0);
+float3 vPixelSum = float3(0, 0, 0);
+
+// horizontal edge detection filter
+float hFilter[9] = { 1, 2, 1,
+                     0, 0, 0,
+                    -1,-2,-1};
+
+// vertical edge detection filter
+float vFilter[9] = { 1, 0,-1,
+                     2, 0,-2,
+                     1, 0,-1};
+
+
+static int kernelSize = 3;
+// applying both filters row by row
+for (int y = 0; y < kernelSize; y++)
+{
+  float2 uvSample0 = uv + float2(0,y)*texelSize;
+  float2 uvSample1 = uv + float2(1,y)*texelSize;
+  float2 uvSample2 = uv + float2(2,y)*texelSize;
+  float3 pixelSample0 = SceneTextureLookup(uvSample0, CUSTOM_DEPTH_TEXTURE_ID, 0).rgb / 255.0;
+  float3 pixelSample1 = SceneTextureLookup(uvSample1, CUSTOM_DEPTH_TEXTURE_ID, 0).rgb / 255.0;
+  float3 pixelSample2 = SceneTextureLookup(uvSample2, CUSTOM_DEPTH_TEXTURE_ID, 0).rgb / 255.0;
+  
+  // Applying horizontal filter
+  float hWeight0 = hFilter[y*kernelSize];
+  float hWeight1 = hFilter[y*kernelSize + 1];
+  float hWeight2 = hFilter[y*kernelSize + 2];
+  hPixelSum += pixelSample0*hWeight0;
+  hPixelSum += pixelSample1*hWeight1;
+  hPixelSum += pixelSample2*hWeight2;
+  
+  // Applying vertical filter
+  float vWeight0 = vFilter[y*kernelSize];
+  float vWeight1 = vFilter[y*kernelSize + 1];
+  float vWeight2 = vFilter[y*kernelSize + 2];
+  vPixelSum += pixelSample0*vWeight0;
+  vPixelSum += pixelSample1*vWeight1;
+  vPixelSum += pixelSample2*vWeight2;
+  
+}
+
+// combining vertical and horizontal edges
+float3 hvCombined = sqrt( pow(hPixelSum,2) + pow(vPixelSum,2) );
+
+return hvCombined;
